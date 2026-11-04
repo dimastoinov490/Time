@@ -1,31 +1,40 @@
-# Time - Android Suite
+# Neo Clock - Native Android (Kotlin + Jetpack Compose)
 
-A modern, high-precision Android application built with Kotlin and Jetpack Compose for timekeeping, world time synchronization, smart alarms, multi-timers, precision lap stopwatch, and focus tracking.
+Полноценное нативное приложение будильника, мирового времени и таймера для Android, выполненное в неоморфном тёмном дизайне на **Kotlin** и **Jetpack Compose**.
 
-## Core Features
+> ⚡ **100% Native Android**: В приложении **нет HTML, JavaScript или WebView**. Весь интерфейс отрисован нативно через Jetpack Compose и Canvas с двойными неоморфными тенями (`Modifier.neuRaised()`, `Modifier.neuSunk()`), аудио синтезируется на лету через Android `AudioTrack`, а будильники управляются нативным `AlarmManager.setAlarmClock()`.
 
-- **World Clock & Timezone Scrubber**:
-  - Live animated analog clock face alongside high-contrast digital display with 12H / 24H switching.
-  - Interactive Timezone Scrubber: Scrub up to ±12 hours to compare relative time across global cities in real-time.
-  - Searchable global timezone city database with day/night indicators and time delta calculations.
-- **Smart Alarms & Wake Challenges**:
-  - Customizable recurring alarms with individual day-of-week toggles.
-  - Interactive wake-up challenges: Math puzzles and Reflex tap tests to ensure you are fully awake.
-  - Instant alarm test mode and configurable snooze durations.
-- **Multi-Timers & Pomodoro Focus**:
-  - Simultaneous multi-timer management with quick-start presets (+3m Tea, +5m Quick, +20m Nap, +25m Focus, +45m Workout).
-  - Circular animated progress rings with one-tap +1 minute extension and completion alerts.
-  - Integrated Pomodoro focus sprint mode with 25/5/15 intervals and streak counters.
-- **Precision Stopwatch**:
-  - High-precision millisecond timing with analog and digital displays.
-  - Lap telemetry with automated fastest and slowest lap highlighting and split calculations.
-- **Focus & Time Tracking**:
-  - Activity logger for deep work, coding, studying, reading, and fitness.
-  - Daily goal progress tracking and category distribution breakdown.
+---
 
-## Tech Stack
+## Возможности
 
-- **Runtime**: Kotlin & Jetpack Compose
-- **Design System**: Material Design 3 (M3) Dark Theme
-- **Architecture**: MVVM with Kotlin Coroutines and StateFlow
-- **Target SDK**: Android 36 (minSdk 26)
+- **Мировое время**:
+  - Центральный неоморфный циферблат с анимированным круговым неоновым свечением.
+  - Карусель городов (Кишинёв, Джакарта/Бандунг, Лондон, Нью-Йорк, Токио, Дубай и выбор любого часового пояса IANA).
+  - Настройки формата 12/24ч.
+- **Будильник**:
+  - Карточки с крупным временем и плавными пружинными переключателями.
+  - Добавление будильника через неоморфный BottomSheet: выбор времени, дни недели, вибрация.
+  - 10 синтезированных мелодий iOS (Radar, Opening, Chimes, Reflection, Apex, Beacon, Seaside, Silk, Twinkle, Cosmic) + системные рингтоны + выбор своего аудиофайла.
+  - Точное срабатывание через `AlarmManager.setAlarmClock()` (работает даже в Doze-режиме энергосбережения).
+  - Полноэкранный экран звонка `AlarmRingActivity` со свайпом выключения и кнопкой «Ещё 5 мин».
+  - Автоматическое восстановление всех будильников после перезагрузки устройства (`BootReceiver`).
+- **Таймер**:
+  - Анимированное круговое неоновое кольцо таймера.
+  - Быстрые пресеты (1 мин, 5 мин, 10 мин, 15 мин) и ручной ввод.
+  - `TimerService` (Foreground Service) с уведомлением и кнопками управления.
+- **Интерфейс**:
+  - Плавная морфинг-навигация между тремя вкладками (Мировое время / Будильник / Таймер) с отслеживанием жестов свайпа (`HorizontalPager`).
+  - Фирменная неоморфная иконка приложения.
+
+---
+
+## Сборка в GitHub Actions
+
+В репозиторий добавлен рабочий процесс `.github/workflows/android.yml`.
+
+### Как запустить сборку APK на GitHub:
+1. Перейдите во вкладку **Actions** в вашем репозитории на GitHub.
+2. В левом меню выберите **Build Android APK**.
+3. Нажмите кнопку **Run workflow** справа (выберите ветку `main` или `master`) и нажмите зелёную кнопку **Run workflow**.
+4. После завершения сборки (1-2 минуты) откройте запуск и в блоке **Artifacts** скачайте готовый файл **`NeoClock-APK`** (`app-debug.apk`).
