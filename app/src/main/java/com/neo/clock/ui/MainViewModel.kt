@@ -115,9 +115,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             repository.alarms.collect { list ->
                 // If list is completely empty, populate with the 3 default alarms from alarm.html
                 if (list.isEmpty()) {
-                    repository.addAlarm(5, 0, "Подъём", 0, "birds", true)
-                    repository.addAlarm(12, 0, "Учёба", 0, "crystal", false)
-                    repository.addAlarm(12, 5, "Спорт", 0, "pulse", false)
+                    repository.addAlarm(5, 0, "Подъём", 0, "builtin:dawn", true)
+                    repository.addAlarm(12, 0, "Учёба", 0, "builtin:crystal", false)
+                    repository.addAlarm(12, 5, "Спорт", 0, "builtin:pulse", false)
                 } else {
                     _uiState.update { it.copy(alarms = list) }
                 }
@@ -180,6 +180,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch {
             repository.addAlarm(hour, minute, label, daysBitmask, sound, vibrate)
+        }
+    }
+
+    fun updateAlarm(alarm: AlarmEntity) {
+        viewModelScope.launch {
+            repository.updateAlarm(alarm)
         }
     }
 

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -80,6 +81,7 @@ fun AlarmScreen(
     modifier: Modifier = Modifier
 ) {
     var showNewAlarmSheet by remember { mutableStateOf(false) }
+    var editingSoundAlarm by remember { mutableStateOf<AlarmEntity?>(null) }
 
     Column(
         modifier = modifier
@@ -144,7 +146,8 @@ fun AlarmScreen(
                         alarm = alarm,
                         is12Hour = state.is12Hour,
                         onToggle = { viewModel.toggleAlarm(alarm) },
-                        onDelete = { viewModel.deleteAlarm(alarm) }
+                        onDelete = { viewModel.deleteAlarm(alarm) },
+                        onSoundClick = { editingSoundAlarm = alarm }
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                 }
@@ -190,6 +193,21 @@ fun AlarmScreen(
             }
         )
     }
+
+    editingSoundAlarm?.let { alarm ->
+        com.neo.clock.ui.sound.SoundPickerSheet(
+            selectedSoundId = alarm.sound,
+            customSounds = state.customSounds,
+            onSelectSound = { newSound ->
+                viewModel.updateAlarm(alarm.copy(sound = newSound))
+                editingSoundAlarm = null
+            },
+            onAddCustomSound = { uri, name -> viewModel.addCustomSound(uri, name) },
+            onRenameCustomSound = { uri, name -> viewModel.renameCustomSound(uri, name) },
+            onDeleteCustomSound = { uri -> viewModel.deleteCustomSound(uri) },
+            onDismiss = { editingSoundAlarm = null }
+        )
+    }
 }
 
 @Composable
@@ -197,7 +215,8 @@ fun AlarmCard(
     alarm: AlarmEntity,
     is12Hour: Boolean,
     onToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onSoundClick: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val displayHour = if (is12Hour) {
@@ -223,14 +242,42 @@ fun AlarmCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    text = "${alarm.label.ifBlank { "Будильник" }} · $soundName",
-                    style = TextStyle(
-                        fontFamily = Poppins,
-                        fontSize = 13.sp,
-                        color = NeuMuted
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = alarm.label.ifBlank { "Будильник" },
+                        style = TextStyle(
+                            fontFamily = Poppins,
+                            fontSize = 13.sp,
+                            color = NeuMuted
+                        )
                     )
-                )
+                    Text(text = " · ", color = NeuMuted, fontSize = 13.sp)
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onSoundClick() }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                            .testTag("alarm_card_sound_${alarm.id}"),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = "Мелодия",
+                            tint = NeuBlue2,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = soundName,
+                            style = TextStyle(
+                                fontFamily = Poppins,
+                                fontSize = 13.sp,
+                                color = NeuBlue2,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(2.dp))
 
