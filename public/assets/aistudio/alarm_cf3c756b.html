@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Будильник — Neumorphism</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#2b2c2e;--bg2:#252628;--hi:#3a3b3e;--lo:#19191a;--tx:#c9c9cc;--mut:#85868a;--blue:#2f6bff;--blue2:#5b8dff}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:radial-gradient(120% 90% at 50% 0%,#3a3b3d,#1f2021);color:var(--tx);font-family:Poppins,system-ui,sans-serif;display:grid;place-items:center}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.raise{background:linear-gradient(145deg,#2f3032,#262729);box-shadow:6px 6px 14px var(--lo),-5px -5px 12px var(--hi)}
+.sunk{background:#232426;box-shadow:inset 5px 5px 10px var(--lo),inset -4px -4px 9px #343537}
+.phone{position:relative;width:min(390px,100vw);height:min(800px,100vh);background:linear-gradient(160deg,#2e2f31,#232426);border-radius:38px;box-shadow:0 0 0 1px #3a3b3d,30px 30px 60px #121213,-20px -20px 50px #38393b;overflow:hidden;display:flex;flex-direction:column;padding:max(28px,env(safe-area-inset-top)) 0 max(22px,env(safe-area-inset-bottom))}
+@media(max-width:420px){.phone{border-radius:0;height:100%}}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px}
+h1{font-size:18px;font-weight:400;letter-spacing:.04em;transition:opacity .3s,transform .4s}
+h1.sw{opacity:0;transform:translateY(-8px)}
+.gear{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;transition:.2s}
+.gear:active,.nav button:active,.chip:active,.fab:active{box-shadow:inset 4px 4px 8px var(--lo),inset -3px -3px 7px var(--hi)}
+.track{flex:1;display:flex;width:300%;transition:transform .7s cubic-bezier(.22,.9,.28,1)}
+.panel{width:33.3333%;padding:10px 26px 0;transition:opacity .6s,transform .7s cubic-bezier(.22,.9,.28,1),filter .6s;opacity:.0;transform:scale(.92);filter:blur(4px);overflow:hidden auto;scrollbar-width:none}
+.panel.on{opacity:1;transform:none;filter:none}
+/* world */
+.dial{position:relative;width:280px;height:280px;margin:14px auto 0;border-radius:50%;display:grid;place-items:center}
+.dial::before{content:"";position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(from 140deg,transparent 0 8%,#1b3f9e 20%,var(--blue) 40%,#1b3f9e 60%,transparent 72%);filter:blur(.4px);box-shadow:0 12px 40px -8px rgba(47,107,255,.55);animation:spin 18s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dial i{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 35% 28%,#2d2e30,#1f2022);box-shadow:inset 0 3px 8px #000a}
+.dial div{position:relative;text-align:center}
+.big{font-size:50px;font-weight:600;letter-spacing:.06em;background:linear-gradient(#e8e8ea,#8d8e92);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 2px 2px rgba(0,0,0,.3);font-variant-numeric:tabular-nums}
+.big b{font-weight:600;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.date{margin-top:8px;color:var(--mut);font-size:17px}
+.cities{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;margin:34px -26px 0;padding:10px 26px 14px;scrollbar-width:none}
+.cities::-webkit-scrollbar{display:none}
+.city{flex:0 0 100%;scroll-snap-align:center;border-radius:20px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center}
+.city strong{display:block;font-weight:500;font-size:20px;color:#8fa6d8}
+.city small{color:var(--mut);font-size:13px}
+.city span{font-size:26px;font-weight:600;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.dots{display:flex;justify-content:center;gap:12px;margin-top:10px}
+.dots u{width:12px;height:12px;border-radius:50%;background:#1c1d1e;box-shadow:inset 1px 1px 3px #000,1px 1px 2px #3b3c3e;transition:.3s}
+.dots u.a{background:var(--blue);box-shadow:0 0 12px var(--blue2)}
+/* alarm */
+.card{border-radius:20px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;transition:transform .3s,opacity .3s}
+.card.off .t{color:var(--mut)}
+.card small{display:block;color:var(--mut);font-size:13px}
+.t{font-size:30px;font-weight:600;letter-spacing:.06em;font-variant-numeric:tabular-nums;transition:color .3s}
+.tg{width:56px;height:30px;border-radius:15px;position:relative;flex:none}
+.tg::after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;background:linear-gradient(145deg,#4a4b4e,#2c2d2f);box-shadow:2px 2px 5px #000a;transition:.35s cubic-bezier(.3,1.4,.5,1)}
+.card:not(.off) .tg{box-shadow:inset 4px 4px 8px #0a1a45,inset -3px -3px 6px #3d73ff55;background:#17307a}
+.card:not(.off) .tg::after{left:30px;background:linear-gradient(145deg,#7ea3ff,var(--blue));box-shadow:0 0 12px var(--blue2)}
+.del{color:var(--mut);padding:6px;margin-right:6px}
+.empty{color:var(--mut);text-align:center;margin-top:60px;font-size:14px}
+/* timer */
+.ring{position:relative;width:250px;height:250px;margin:20px auto 26px}
+.ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.ring .tt{position:absolute;inset:0;display:grid;place-items:center}
+.chips{display:flex;gap:12px;justify-content:center;margin-bottom:26px}
+.chip{padding:10px 16px;border-radius:14px;font-size:14px;transition:.2s}
+.chip.a{color:var(--blue2);box-shadow:inset 4px 4px 8px var(--lo),inset -3px -3px 7px var(--hi)}
+.row{display:flex;gap:22px;justify-content:center}
+.pill{padding:14px 30px;border-radius:18px;font-weight:500}
+.pill.go{color:#fff;background:linear-gradient(145deg,#4a7dff,#2253d6);box-shadow:0 8px 22px -6px rgba(47,107,255,.7),-3px -3px 8px var(--hi)}
+.pill:active{transform:scale(.96)}
+/* nav */
+.nav{display:flex;justify-content:space-around;align-items:center;padding:14px 30px 0}
+.nav button{width:58px;height:58px;border-radius:20px;display:grid;place-items:center;color:var(--mut);transition:.35s}
+.nav button.a{color:var(--blue2);box-shadow:inset 4px 4px 9px var(--lo),inset -3px -3px 8px var(--hi),0 0 18px -2px rgba(47,107,255,.5);background:#202a45}
+.nav svg{width:24px;height:24px}
+/* sheet & ring overlay */
+.sheet{position:absolute;inset:0;background:#0009;backdrop-filter:blur(6px);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .35s;z-index:5}
+.sheet.on{opacity:1;pointer-events:auto}
+.sheet>div{width:100%;background:var(--bg);border-radius:32px 32px 0 0;padding:26px 26px 32px;transform:translateY(100%);transition:transform .5s cubic-bezier(.22,.9,.28,1)}
+.sheet.on>div{transform:none}
+.sheet h2{font-weight:400;font-size:17px;margin-bottom:16px}
+.f{width:100%;padding:14px 16px;border-radius:14px;border:0;color:var(--tx);font:inherit;margin-bottom:14px;outline:none;appearance:none;-webkit-appearance:none}
+.f:focus-visible,button:focus-visible{outline:2px solid var(--blue2);outline-offset:2px}
+input[type=time].f{font-size:32px;font-weight:600;text-align:center;letter-spacing:.06em;color-scheme:dark}
+.snd{display:flex;gap:10px;align-items:center;margin-bottom:18px}
+.snd select{margin:0;flex:1}
+.ringing{text-align:center;padding-bottom:40px}
+.ringing .big{font-size:58px}
+.bell{width:84px;height:84px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;color:var(--blue2);animation:shake .5s infinite,pulse 1.5s infinite}
+@keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+@keyframes pulse{50%{box-shadow:0 0 36px var(--blue)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<main class="phone">
+  <header><h1 id="ttl">Мировое время</h1><button class="gear raise" id="fmt" aria-label="Формат 12/24 ч"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 4v16M12 4v16M18 4v16M3.5 9h5M9.5 15h5M15.5 8h5"/></svg></button></header>
+
+  <div class="track" id="track">
+    <section class="panel on">
+      <div class="dial"><i></i><div><div class="big" id="bigt">08:00</div><div class="date" id="bigd"></div></div></div>
+      <div class="cities" id="cities"></div>
+      <div class="dots" id="dots"></div>
+    </section>
+
+    <section class="panel">
+      <div id="alist"></div>
+      <div style="display:flex;justify-content:center;margin-top:6px"><button class="pill raise" id="add">+ Новый будильник</button></div>
+    </section>
+
+    <section class="panel">
+      <div class="ring">
+        <svg viewBox="0 0 250 250"><circle cx="125" cy="125" r="112" fill="none" stroke="#1d1e20" stroke-width="14"/><circle id="arc" cx="125" cy="125" r="112" fill="none" stroke="#3b77ff" stroke-width="14" stroke-linecap="round" stroke-dasharray="703.7" stroke-dashoffset="0" style="filter:drop-shadow(0 0 8px #2f6bff);transition:stroke-dashoffset .25s linear"/></svg>
+        <div class="tt"><div class="big" id="tm">05:00</div></div>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="row"><button class="pill raise" id="treset">Сброс</button><button class="pill go" id="tgo">Старт</button></div>
+    </section>
+  </div>
+
+  <nav class="nav">
+    <button class="a" data-i="0" aria-label="Мировое время"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1 2.1V6l-2 1-1 2 2 1 2-1v2l-2 2H7.5A8 8 0 0111 4.1zM13 19.9V18l2-3h3.6A8 8 0 0113 19.9z"/></svg></button>
+    <button data-i="1" aria-label="Будильник"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9.5v7M8.5 13h7M3 6l3-3M21 6l-3-3"/></svg></button>
+    <button data-i="2" aria-label="Таймер"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 8.5V13l3 2M9.5 2.5h5"/></svg></button>
+  </nav>
+
+  <div class="sheet" id="sheet"><div>
+    <h2>Новый будильник</h2>
+    <input class="f sunk" type="time" id="nt" value="07:00">
+    <input class="f sunk" id="nl" placeholder="Название" maxlength="24">
+    <div class="snd"><select class="f sunk" id="ns"></select><button class="gear raise" id="prev" aria-label="Прослушать"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button></div>
+    <div class="row"><button class="pill raise" id="cancel">Отмена</button><button class="pill go" id="save">Сохранить</button></div>
+  </div></div>
+
+  <div class="sheet" id="ringS"><div class="ringing">
+    <div class="bell raise"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M3 6l3-3M21 6l-3-3"/></svg></div>
+    <div class="big" id="rt">00:00</div><p class="date" id="rl" style="margin-bottom:26px"></p>
+    <div class="row"><button class="pill raise" id="snooze">Ещё 5 мин</button><button class="pill go" id="stop">Выключить</button></div>
+  </div></div>
+</main>
+
+<script>
+const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,'0');
+let h12=false;
+/* ---------- звуки (Web Audio, без файлов) ---------- */
+let ctx;const AC=()=>{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();ctx.resume();return ctx};
+const hz=m=>440*2**((m-69)/12);
+function tone(out,f,t,d,type='sine',v=.25,lp){const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.015);g.gain.exponentialRampToValueAtTime(.001,t+d);let n=o;if(lp){const b=ctx.createBiquadFilter();b.frequency.value=lp;o.connect(b);n=b}n.connect(g).connect(out);o.start(t);o.stop(t+d+.05)}
+function melody(notes,bpm,play){return out=>{let t=ctx.currentTime+.05;const b=60/bpm;notes.forEach(([m,l])=>{if(m)play(out,hz(m),t,l*b*1.4,l*b);t+=l*b});return t-ctx.currentTime}}
+function noise(out,kind){const len=ctx.sampleRate*2,buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;const s=ctx.createBufferSource();s.buffer=buf;s.loop=true;const f=ctx.createBiquadFilter(),g=ctx.createGain();if(kind=='rain'){f.type='highpass';f.frequency.value=1400;g.gain.value=.22}else{f.type='lowpass';f.frequency.value=500;g.gain.value=.35;const l=ctx.createOscillator(),lg=ctx.createGain();l.frequency.value=.12;lg.gain.value=.3;l.connect(lg).connect(g.gain);l.start()}s.connect(f).connect(g).connect(out);s.start();return()=>{s.stop()}}
+const bell=(o,f,t,d)=>{tone(o,f,t,d*1.6,'sine',.22);tone(o,f*2.76,t,d*.6,'sine',.07)};
+const piano=(o,f,t,d)=>{tone(o,f,t,d,'triangle',.28);tone(o,f*2,t,d*.5,'sine',.06)};
+const synth=(o,f,t,d,l)=>tone(o,f,t,d*.7,'sawtooth',.12,1800);
+const SOUNDS={
+ birds:{n:'Утро в лесу',g:'Природа',loop:o=>{let t=ctx.currentTime+.1;for(let k=0;k<6;k++){const f=2600+Math.random()*1800,s=t+k*.35+Math.random()*.2;for(let j=0;j<3;j++){const os=ctx.createOscillator(),g=ctx.createGain();os.frequency.setValueAtTime(f,s+j*.09);os.frequency.exponentialRampToValueAtTime(f*1.4,s+j*.09+.07);g.gain.setValueAtTime(.0001,s+j*.09);g.gain.linearRampToValueAtTime(.12,s+j*.09+.02);g.gain.exponentialRampToValueAtTime(.0001,s+j*.09+.08);os.connect(g).connect(o);os.start(s+j*.09);os.stop(s+j*.09+.1)}}return 2.6}},
+ rain:{n:'Дождь',g:'Природа',cont:o=>noise(o,'rain')},
+ ocean:{n:'Океан',g:'Природа',cont:o=>noise(o,'ocean')},
+ elise:{n:'Für Elise',g:'Классика',loop:melody([[76,.5],[75,.5],[76,.5],[75,.5],[76,.5],[71,.5],[74,.5],[72,.5],[69,1.5],[0,.5],[60,.5],[64,.5],[69,.5],[71,1.5],[0,.5],[64,.5],[68,.5],[71,.5],[72,1.5]],112,piano)},
+ ode:{n:'Ода к радости',g:'Классика',loop:melody([[64,1],[64,1],[65,1],[67,1],[67,1],[65,1],[64,1],[62,1],[60,1],[60,1],[62,1],[64,1],[64,1.5],[62,.5],[62,2]],110,piano)},
+ pulse:{n:'Neon Pulse',g:'Современные',loop:melody([57,60,64,69,64,60,57,60,59,62,67,71,67,62,59,62].map(m=>[m,.25]),124,synth)},
+ crystal:{n:'Хрустальные колокола',g:'Современные',loop:melody([[72,.5],[76,.5],[79,.5],[84,1],[79,.5],[76,.5],[72,1.5]],96,bell)},
+ classic:{n:'Классический сигнал',g:'Современные',loop:melody([[88,.2],[0,.1],[88,.2],[0,.1],[88,.2],[0,.1],[88,.2],[0,.7]],120,(o,f,t,d)=>tone(o,f,t,.15,'square',.1,3000))}
+};
+let cur=null;
+function startSound(id){stopSound();AC();const out=ctx.createGain();out.gain.value=.9;out.connect(ctx.destination);const s=SOUNDS[id];let on=true,to,kill;
+ if(s.cont){kill=s.cont(out)}else{const run=()=>{if(!on)return;const d=s.loop(out);to=setTimeout(run,d*1000+500)};run()}
+ cur=()=>{on=false;clearTimeout(to);out.gain.setTargetAtTime(0,ctx.currentTime,.05);setTimeout(()=>{try{kill&&kill()}catch(e){}out.disconnect()},300);cur=null}}
+function stopSound(){cur&&cur()}
+/* ---------- навигация ---------- */
+const titles=['Мировое время','Будильник','Таймер'],panels=[...document.querySelectorAll('.panel')],navs=[...document.querySelectorAll('.nav button')];
+function go(i){$('#track').style.transform=`translateX(${-i*33.3333}%)`;panels.forEach((p,k)=>p.classList.toggle('on',k==i));navs.forEach((b,k)=>b.classList.toggle('a',k==i));const h=$('#ttl');h.classList.add('sw');setTimeout(()=>{h.textContent=titles[i];h.classList.remove('sw')},220)}
+navs.forEach(b=>b.onclick=()=>go(+b.dataset.i));
+let sx=null;$('#track').addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+$('#track').addEventListener('touchend',e=>{if(sx==null||e.target.closest('.cities'))return;const dx=e.changedTouches[0].clientX-sx,i=navs.findIndex(b=>b.classList.contains('a'));if(Math.abs(dx)>70)go(Math.max(0,Math.min(2,i+(dx<0?1:-1))));sx=null});
+$('#fmt').onclick=()=>{h12=!h12;tick()};
+/* ---------- мировое время ---------- */
+const Z=[['Кишинёв','Europe/Chisinau'],['Бандунг','Asia/Jakarta'],['Лондон','Europe/London'],['Нью-Йорк','America/New_York'],['Токио','Asia/Tokyo'],['Дубай','Asia/Dubai']];
+$('#cities').innerHTML=Z.map((z,i)=>`<div class="city raise"><div><strong>${z[0]}</strong><small id="cd${i}"></small></div><span id="ct${i}"></span></div>`).join('');
+$('#dots').innerHTML=Z.map(()=>'<u></u>').join('');
+const fmtT=(d,tz)=>{const p=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:h12}).format(d);return p.toUpperCase().replace(' ','').replace(':',' : ')};
+function tick(){const d=new Date(),loc=d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',hour12:h12}).split(':');
+ $('#bigt').innerHTML=`${loc[0]} <b>:</b> ${loc[1].replace(' ','')}`;$('#bigd').textContent=d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+ Z.forEach((z,i)=>{$('#ct'+i).textContent=fmtT(d,z[1]);$('#cd'+i).textContent=d.toLocaleDateString('ru-RU',{timeZone:z[1],weekday:'short',day:'numeric',month:'numeric'})});
+ checkAlarms(d)}
+const cs=$('#cities');cs.onscroll=()=>{const i=Math.round(cs.scrollLeft/cs.clientWidth*(cs.scrollWidth/cs.clientWidth/ (cs.scrollWidth/cs.clientWidth)));const k=Math.round(cs.scrollLeft/(cs.children[0].offsetWidth+16));[...$('#dots').children].forEach((u,j)=>u.classList.toggle('a',j==k))};cs.onscroll();
+/* ---------- будильники ---------- */
+let alarms=[];try{alarms=JSON.parse(localStorage.getItem('alarms'))||[]}catch(e){}
+if(!alarms.length)alarms=[{id:1,t:'05:00',l:'Подъём',s:'birds',on:true},{id:2,t:'12:00',l:'Учёба',s:'crystal',on:false},{id:3,t:'12:05',l:'Спорт',s:'pulse',on:false}];
+const save=()=>{try{localStorage.setItem('alarms',JSON.stringify(alarms))}catch(e){}};
+function render(){$('#alist').innerHTML=alarms.length?alarms.map(a=>`<div class="card raise ${a.on?'':'off'}" data-id="${a.id}"><div><small>${a.l||'Будильник'} · ${SOUNDS[a.s].n}</small><div class="t">${a.t.replace(':',' : ')}</div></div><div style="display:flex;align-items:center"><button class="del" data-del="${a.id}" aria-label="Удалить"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><button class="tg sunk" data-tg="${a.id}" aria-label="Вкл/выкл"></button></div></div>`).join(''):'<p class="empty">Нет будильников</p>'}
+$('#alist').onclick=e=>{const t=e.target.closest('[data-tg]'),d=e.target.closest('[data-del]');if(t){const a=alarms.find(x=>x.id==t.dataset.tg);a.on=!a.on;a.fired=0;t.closest('.card').classList.toggle('off',!a.on);save()}if(d){alarms=alarms.filter(x=>x.id!=d.dataset.del);save();render()}};
+const groups={};Object.entries(SOUNDS).forEach(([k,s])=>(groups[s.g]=groups[s.g]||[]).push(`<option value="${k}">${s.n}</option>`));
+$('#ns').innerHTML=Object.entries(groups).map(([g,o])=>`<optgroup label="${g}">${o.join('')}</optgroup>`).join('');
+const sh=$('#sheet');let prev=false;
+$('#add').onclick=()=>sh.classList.add('on');
+const closeSheet=()=>{sh.classList.remove('on');stopSound();prev=false};
+$('#cancel').onclick=closeSheet;
+$('#prev').onclick=()=>{if(prev){stopSound();prev=false}else{startSound($('#ns').value);prev=true}};
+$('#ns').onchange=()=>{if(prev)startSound($('#ns').value)};
+$('#save').onclick=()=>{alarms.push({id:Date.now(),t:$('#nt').value||'07:00',l:$('#nl').value.trim(),s:$('#ns').value,on:true});alarms.sort((a,b)=>a.t.localeCompare(b.t));save();render();$('#nl').value='';closeSheet()};
+let ringing=null;
+function ring(label,sound,time){ringing={sound};$('#rt').textContent=time;$('#rl').textContent=label;startSound(sound);$('#ringS').classList.add('on');if(navigator.vibrate)navigator.vibrate([400,200,400])}
+function stopRing(){stopSound();$('#ringS').classList.remove('on');ringing=null;if(navigator.vibrate)navigator.vibrate(0)}
+$('#stop').onclick=stopRing;
+$('#snooze').onclick=()=>{const r=ringing;stopRing();const d=new Date(Date.now()+5*6e4);alarms.push({id:Date.now(),t:pad(d.getHours())+':'+pad(d.getMinutes()),l:'Отложено',s:r.sound,on:true,once:true});save();render()};
+let lastMin='';
+function checkAlarms(d){const m=pad(d.getHours())+':'+pad(d.getMinutes());if(m===lastMin)return;lastMin=m;if(ringing)return;const a=alarms.find(x=>x.on&&x.t===m);if(a){if(a.once){alarms=alarms.filter(x=>x!==a)}else a.on=false;save();render();ring(a.l||'Будильник',a.s,m)}}
+/* ---------- таймер ---------- */
+const C=703.7;let total=300,left=300,run=null,end=0;
+$('#chips').innerHTML=[1,5,10,15].map(m=>`<button class="chip raise ${m==5?'a':''}" data-m="${m}">${m} мин</button>`).join('');
+const showT=()=>{$('#tm').textContent=pad(Math.floor(left/60))+':'+pad(Math.ceil(left%60)%60+(Math.ceil(left%60)==60?0:0));const s=Math.ceil(left);$('#tm').textContent=pad(Math.floor(s/60))+':'+pad(s%60);$('#arc').style.strokeDashoffset=C*(1-(total?left/total:0))};
+$('#chips').onclick=e=>{const c=e.target.closest('.chip');if(!c||run)return;total=left=c.dataset.m*60;[...$('#chips').children].forEach(x=>x.classList.toggle('a',x==c));showT()};
+function tstop(){clearInterval(run);run=null;$('#tgo').textContent='Старт'}
+$('#tgo').onclick=()=>{if(run){left=Math.max(0,(end-Date.now())/1000);tstop();return}if(left<=0)left=total;AC();end=Date.now()+left*1000;$('#tgo').textContent='Пауза';run=setInterval(()=>{left=Math.max(0,(end-Date.now())/1000);showT();if(left<=0){tstop();left=total;showT();ring('Таймер завершён','crystal',pad(Math.floor(total/60))+':'+pad(total%60))}},200)};
+$('#treset').onclick=()=>{tstop();left=total;showT()};
+render();showT();tick();setInterval(tick,1000);
+</script>
+</body>
+</html>

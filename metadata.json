@@ -1,0 +1,8 @@
+{
+  "name": "Neo Clock",
+  "description": "Native Neumorphic Clock, Alarm, and Timer app with exact AlarmClock scheduling, custom PCM sound synthesizer, background services, and world time.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

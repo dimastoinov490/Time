@@ -1,0 +1,547 @@
+package com.neo.clock.ui.screens
+
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.neo.clock.audio.SoundEngine
+import com.neo.clock.data.local.AlarmEntity
+import com.neo.clock.ui.MainUiState
+import com.neo.clock.ui.MainViewModel
+import com.neo.clock.ui.components.NeumorphicTimePicker
+import com.neo.clock.ui.modifiers.neuClickable
+import com.neo.clock.ui.modifiers.neuRaised
+import com.neo.clock.ui.modifiers.neuSunk
+import com.neo.clock.ui.theme.NeuBg
+import com.neo.clock.ui.theme.NeuBlue
+import com.neo.clock.ui.theme.NeuBlue2
+import com.neo.clock.ui.theme.NeuBlueDark
+import com.neo.clock.ui.theme.NeuDarkShadow
+import com.neo.clock.ui.theme.NeuLightShadow
+import com.neo.clock.ui.theme.NeuMuted
+import com.neo.clock.ui.theme.NeuText
+import com.neo.clock.ui.theme.Poppins
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AlarmScreen(
+    state: MainUiState,
+    viewModel: MainViewModel,
+    modifier: Modifier = Modifier
+) {
+    var showNewAlarmSheet by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Будильник",
+                style = TextStyle(
+                    fontFamily = Poppins,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Normal,
+                    letterSpacing = 0.04.sp,
+                    color = NeuText
+                )
+            )
+            Text(
+                text = "${state.alarms.count { it.enabled }} акт.",
+                style = TextStyle(
+                    fontFamily = Poppins,
+                    fontSize = 13.sp,
+                    color = NeuMuted
+                )
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Alarms List
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            if (state.alarms.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 60.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Нет будильников",
+                            style = TextStyle(fontFamily = Poppins, fontSize = 14.sp, color = NeuMuted)
+                        )
+                    }
+                }
+            } else {
+                items(state.alarms, key = { it.id }) { alarm ->
+                    AlarmCard(
+                        alarm = alarm,
+                        is12Hour = state.is12Hour,
+                        onToggle = { viewModel.toggleAlarm(alarm) },
+                        onDelete = { viewModel.deleteAlarm(alarm) }
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
+            }
+        }
+
+        // "+ Новый будильник" button (.pill.raise)
+        Box(
+            modifier = Modifier
+                .padding(bottom = 14.dp)
+                .neuClickable(cornerRadius = 18.dp, onClick = { showNewAlarmSheet = true })
+                .testTag("new_alarm_button")
+                .padding(horizontal = 30.dp, vertical = 14.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "+ Новый будильник",
+                style = TextStyle(
+                    fontFamily = Poppins,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = NeuText
+                )
+            )
+        }
+    }
+
+    if (showNewAlarmSheet) {
+        NewAlarmModal(
+            is12Hour = state.is12Hour,
+            previewingSoundId = state.previewingSoundId,
+            onPreviewSound = { viewModel.previewSound(it) },
+            onDismiss = {
+                viewModel.stopSoundPreview()
+                showNewAlarmSheet = false
+            },
+            onSave = { hour, minute, label, daysBitmask, sound, vibrate ->
+                viewModel.stopSoundPreview()
+                viewModel.createAlarm(hour, minute, label, daysBitmask, sound, vibrate)
+                showNewAlarmSheet = false
+            }
+        )
+    }
+}
+
+@Composable
+fun AlarmCard(
+    alarm: AlarmEntity,
+    is12Hour: Boolean,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val displayHour = if (is12Hour) {
+        val h = alarm.hour % 12
+        String.format("%02d", if (h == 0) 12 else h)
+    } else {
+        String.format("%02d", alarm.hour)
+    }
+    val minutesStr = String.format("%02d", alarm.minute)
+    val amPmStr = if (is12Hour) (if (alarm.hour < 12) " AM" else " PM") else ""
+
+    val soundName = SoundEngine.ALL_SOUNDS.find { it.id == alarm.sound }?.name ?: "Звук"
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .neuRaised(cornerRadius = 20.dp)
+            .padding(16.dp, 18.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "${alarm.label.ifBlank { "Будильник" }} · $soundName",
+                    style = TextStyle(
+                        fontFamily = Poppins,
+                        fontSize = 13.sp,
+                        color = NeuMuted
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Time digits
+                Text(
+                    text = "$displayHour : $minutesStr$amPmStr",
+                    style = TextStyle(
+                        fontFamily = Poppins,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 30.sp,
+                        letterSpacing = 0.06.sp,
+                        color = if (alarm.enabled) NeuText else NeuMuted
+                    )
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Delete button
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .padding(end = 6.dp)
+                        .testTag("delete_alarm_${alarm.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Удалить",
+                        tint = NeuMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                // Neumorphic Spring Switch (.tg.sunk)
+                NeumorphicSwitch(
+                    checked = alarm.enabled,
+                    onCheckedChange = { onToggle() },
+                    modifier = Modifier.testTag("alarm_switch_${alarm.id}")
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun NeumorphicSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // 56dp track width, 30dp height, knob 22dp, left offset 4dp when off, 30dp when on
+    val thumbOffset by animateDpAsState(
+        targetValue = if (checked) 30.dp else 4.dp,
+        animationSpec = spring(
+            dampingRatio = 0.55f, // spring bounce
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "switchThumb"
+    )
+
+    Box(
+        modifier = modifier
+            .width(56.dp)
+            .height(30.dp)
+            .neuSunk(
+                cornerRadius = 15.dp,
+                surfaceColor = if (checked) NeuBlueDark else Color(0xFF232426)
+            )
+            .clickable { onCheckedChange(!checked) }
+    ) {
+        // Knob
+        Box(
+            modifier = Modifier
+                .offset(x = thumbOffset, y = 4.dp)
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(
+                    if (checked) {
+                        Brush.linearGradient(listOf(Color(0xFF7EA3FF), NeuBlue))
+                    } else {
+                        Brush.linearGradient(listOf(Color(0xFF4A4B4E), Color(0xFF2C2D2F)))
+                    }
+                )
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NewAlarmModal(
+    is12Hour: Boolean,
+    previewingSoundId: String?,
+    onPreviewSound: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSave: (hour: Int, minute: Int, label: String, daysBitmask: Int, sound: String, vibrate: Boolean) -> Unit
+) {
+    var hour by remember { mutableIntStateOf(7) }
+    var minute by remember { mutableIntStateOf(0) }
+    var label by remember { mutableStateOf("") }
+    var daysBitmask by remember { mutableIntStateOf(0) } // 0 = once
+    var selectedSound by remember { mutableStateOf("radar") }
+    var vibrate by remember { mutableStateOf(true) }
+
+    var expandedSoundMenu by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    val daysLabels = listOf(
+        Pair("Пн", 1),
+        Pair("Вт", 2),
+        Pair("Ср", 3),
+        Pair("Чт", 4),
+        Pair("Пт", 5),
+        Pair("Сб", 6),
+        Pair("Вс", 7)
+    )
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = NeuBg
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(26.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Новый будильник",
+                style = TextStyle(
+                    fontFamily = Poppins,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = NeuText
+                )
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Time Picker
+            NeumorphicTimePicker(
+                hour = hour,
+                minute = minute,
+                is12Hour = is12Hour,
+                onHourChange = { hour = it },
+                onMinuteChange = { minute = it }
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Name Field (.f.sunk)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .neuSunk(cornerRadius = 14.dp)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            ) {
+                OutlinedTextField(
+                    value = label,
+                    onValueChange = { if (it.length <= 24) label = it },
+                    placeholder = { Text("Название (например: Подъём)", color = NeuMuted, fontSize = 14.sp) },
+                    singleLine = true,
+                    colors = androidx.compose.material3.TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = NeuText,
+                        unfocusedTextColor = NeuText
+                    ),
+                    modifier = Modifier.fillMaxWidth().testTag("alarm_name_input")
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Days of week repeat
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                daysLabels.forEach { (name, dayNum) ->
+                    val bit = dayNum - 1
+                    val isDayActive = (daysBitmask and (1 shl bit)) != 0
+
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .then(if (isDayActive) Modifier.neuSunk(cornerRadius = 12.dp) else Modifier.neuRaised(cornerRadius = 12.dp))
+                            .neuClickable(cornerRadius = 12.dp, onClick = {
+                                daysBitmask = if (isDayActive) {
+                                    daysBitmask and (1 shl bit).inv()
+                                } else {
+                                    daysBitmask or (1 shl bit)
+                                }
+                            })
+                            .testTag("day_chip_$dayNum"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = name,
+                            fontWeight = if (isDayActive) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 12.sp,
+                            color = if (isDayActive) NeuBlue2 else NeuText
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Sound Selector with Preview Gear Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                ExposedDropdownMenuBox(
+                    expanded = expandedSoundMenu,
+                    onExpandedChange = { expandedSoundMenu = it },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    val currentName = SoundEngine.ALL_SOUNDS.find { it.id == selectedSound }?.name ?: "Звук"
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                            .neuSunk(cornerRadius = 14.dp)
+                            .padding(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = currentName, color = NeuText, fontSize = 14.sp)
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSoundMenu)
+                        }
+                    }
+
+                    ExposedDropdownMenu(
+                        expanded = expandedSoundMenu,
+                        onDismissRequest = { expandedSoundMenu = false },
+                        modifier = Modifier.background(NeuBg)
+                    ) {
+                        SoundEngine.ALL_SOUNDS.forEach { s ->
+                            DropdownMenuItem(
+                                text = { Text("${s.name} (${s.group})", color = NeuText) },
+                                onClick = {
+                                    selectedSound = s.id
+                                    expandedSoundMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Play / Preview button (.gear.raise)
+                val isPreviewing = previewingSoundId == selectedSound
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .neuClickable(cornerRadius = 16.dp, onClick = { onPreviewSound(selectedSound) })
+                        .testTag("sound_preview_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isPreviewing) Icons.Default.Stop else Icons.Default.PlayArrow,
+                        contentDescription = "Прослушать",
+                        tint = if (isPreviewing) NeuBlue2 else NeuText,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Action Buttons: Отмена and Сохранить
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .neuClickable(cornerRadius = 18.dp, onClick = onDismiss)
+                        .testTag("cancel_alarm_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Отмена", color = NeuText, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(Color(0xFF4A7DFF), Color(0xFF2253D6))
+                            )
+                        )
+                        .neuClickable(cornerRadius = 18.dp, onClick = {
+                            onSave(hour, minute, label, daysBitmask, selectedSound, vibrate)
+                        })
+                        .testTag("save_alarm_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Сохранить", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                }
+            }
+        }
+    }
+}
