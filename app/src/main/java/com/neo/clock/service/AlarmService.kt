@@ -23,6 +23,7 @@ import com.neo.clock.ui.ring.AlarmRingActivity
 import com.neo.clock.util.AlarmScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class AlarmService : Service() {
@@ -78,7 +79,14 @@ class AlarmService : Service() {
     }
 
     private fun startAudioAndVibration() {
-        SoundEngine.play(this, currentAlarmSound, loop = true, rampVolume = true)
+        CoroutineScope(Dispatchers.IO).launch {
+            val ramp = try {
+                com.neo.clock.data.prefs.UserPreferences(this@AlarmService).isRampVolumeEnabled.first()
+            } catch (_: Exception) {
+                true
+            }
+            SoundEngine.play(this@AlarmService, currentAlarmSound, loop = true, rampVolume = ramp)
+        }
 
         if (currentAlarmVibrate) {
             val pattern = longArrayOf(0, 500, 250, 500, 250)

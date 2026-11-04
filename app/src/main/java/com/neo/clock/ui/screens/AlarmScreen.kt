@@ -175,8 +175,10 @@ fun AlarmScreen(
     if (showNewAlarmSheet) {
         NewAlarmModal(
             is12Hour = state.is12Hour,
-            previewingSoundId = state.previewingSoundId,
-            onPreviewSound = { viewModel.previewSound(it) },
+            customSounds = state.customSounds,
+            onAddCustomSound = { uri, name -> viewModel.addCustomSound(uri, name) },
+            onRenameCustomSound = { uri, name -> viewModel.renameCustomSound(uri, name) },
+            onDeleteCustomSound = { uri -> viewModel.deleteCustomSound(uri) },
             onDismiss = {
                 viewModel.stopSoundPreview()
                 showNewAlarmSheet = false
@@ -197,6 +199,7 @@ fun AlarmCard(
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val displayHour = if (is12Hour) {
         val h = alarm.hour % 12
         String.format("%02d", if (h == 0) 12 else h)
@@ -206,7 +209,7 @@ fun AlarmCard(
     val minutesStr = String.format("%02d", alarm.minute)
     val amPmStr = if (is12Hour) (if (alarm.hour < 12) " AM" else " PM") else ""
 
-    val soundName = SoundEngine.ALL_SOUNDS.find { it.id == alarm.sound }?.name ?: "Звук"
+    val soundName = SoundEngine.resolveTitle(context, alarm.sound)
 
     Box(
         modifier = Modifier
@@ -319,19 +322,22 @@ fun NeumorphicSwitch(
 @Composable
 fun NewAlarmModal(
     is12Hour: Boolean,
-    previewingSoundId: String?,
-    onPreviewSound: (String) -> Unit,
+    customSounds: List<com.neo.clock.audio.CustomSound>,
+    onAddCustomSound: (String, String) -> Unit,
+    onRenameCustomSound: (String, String) -> Unit,
+    onDeleteCustomSound: (String) -> Unit,
     onDismiss: () -> Unit,
     onSave: (hour: Int, minute: Int, label: String, daysBitmask: Int, sound: String, vibrate: Boolean) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var hour by remember { mutableIntStateOf(7) }
     var minute by remember { mutableIntStateOf(0) }
     var label by remember { mutableStateOf("") }
     var daysBitmask by remember { mutableIntStateOf(0) } // 0 = once
-    var selectedSound by remember { mutableStateOf("radar") }
+    var selectedSound by remember { mutableStateOf("builtin:dawn") }
     var vibrate by remember { mutableStateOf(true) }
 
-    var expandedSoundMenu by remember { mutableStateOf(false) }
+    var showSoundPicker by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val daysLabels = listOf(
@@ -439,68 +445,35 @@ fun NewAlarmModal(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Sound Selector with Preview Gear Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Dedicated Melody Row
+            val currentSoundTitle = SoundEngine.resolveTitle(context, selectedSound)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .neuRaised(cornerRadius = 14.dp)
+                    .clickable { showSoundPicker = true }
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .testTag("alarm_sound_row")
             ) {
-                ExposedDropdownMenuBox(
-                    expanded = expandedSoundMenu,
-                    onExpandedChange = { expandedSoundMenu = it },
-                    modifier = Modifier.weight(1f)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val currentName = SoundEngine.ALL_SOUNDS.find { it.id == selectedSound }?.name ?: "Звук"
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                            .neuSunk(cornerRadius = 14.dp)
-                            .padding(14.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(text = currentName, color = NeuText, fontSize = 14.sp)
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSoundMenu)
-                        }
+                    Column {
+                        Text(text = "Мелодия", color = NeuMuted, fontSize = 11.sp)
+                        Text(
+                            text = currentSoundTitle,
+                            color = NeuText,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
-
-                    ExposedDropdownMenu(
-                        expanded = expandedSoundMenu,
-                        onDismissRequest = { expandedSoundMenu = false },
-                        modifier = Modifier.background(NeuBg)
-                    ) {
-                        SoundEngine.ALL_SOUNDS.forEach { s ->
-                            DropdownMenuItem(
-                                text = { Text("${s.name} (${s.group})", color = NeuText) },
-                                onClick = {
-                                    selectedSound = s.id
-                                    expandedSoundMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Play / Preview button (.gear.raise)
-                val isPreviewing = previewingSoundId == selectedSound
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .neuClickable(cornerRadius = 16.dp, onClick = { onPreviewSound(selectedSound) })
-                        .testTag("sound_preview_button"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (isPreviewing) Icons.Default.Stop else Icons.Default.PlayArrow,
-                        contentDescription = "Прослушать",
-                        tint = if (isPreviewing) NeuBlue2 else NeuText,
-                        modifier = Modifier.size(20.dp)
+                    Text(
+                        text = "Выбрать >",
+                        color = NeuBlue2,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -543,5 +516,20 @@ fun NewAlarmModal(
                 }
             }
         }
+    }
+
+    if (showSoundPicker) {
+        com.neo.clock.ui.sound.SoundPickerSheet(
+            selectedSoundId = selectedSound,
+            customSounds = customSounds,
+            onSelectSound = {
+                selectedSound = it
+                showSoundPicker = false
+            },
+            onAddCustomSound = onAddCustomSound,
+            onRenameCustomSound = onRenameCustomSound,
+            onDeleteCustomSound = onDeleteCustomSound,
+            onDismiss = { showSoundPicker = false }
+        )
     }
 }

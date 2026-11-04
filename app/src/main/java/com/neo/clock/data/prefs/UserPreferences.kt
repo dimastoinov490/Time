@@ -8,8 +8,11 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.neo.clock.audio.CustomSound
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import org.json.JSONArray
+import org.json.JSONObject
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "neoclock_settings")
 
@@ -22,6 +25,8 @@ class UserPreferences(private val context: Context) {
         val KEY_TIMER_END_TIME = longPreferencesKey("timer_end_time")
         val KEY_TIMER_TOTAL_SEC = longPreferencesKey("timer_total_seconds")
         val KEY_TIMER_RUNNING = booleanPreferencesKey("timer_is_running")
+        val KEY_CUSTOM_SOUNDS = stringPreferencesKey("custom_sounds_json")
+        val KEY_RAMP_VOLUME = booleanPreferencesKey("ramp_volume_enabled")
     }
 
     val is12HourFormat: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -29,7 +34,11 @@ class UserPreferences(private val context: Context) {
     }
 
     val timerSound: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[KEY_TIMER_SOUND] ?: "radar"
+        prefs[KEY_TIMER_SOUND] ?: "builtin:crystal"
+    }
+
+    val isRampVolumeEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[KEY_RAMP_VOLUME] ?: true
     }
 
     val selectedCities: Flow<String> = context.dataStore.data.map { prefs ->
@@ -48,12 +57,21 @@ class UserPreferences(private val context: Context) {
         prefs[KEY_TIMER_RUNNING] ?: false
     }
 
+    val customSounds: Flow<List<CustomSound>> = context.dataStore.data.map { prefs ->
+        val rawJson = prefs[KEY_CUSTOM_SOUNDS] ?: "[]"
+        parseCustomSounds(rawJson)
+    }
+
     suspend fun set12HourFormat(is12Hour: Boolean) {
         context.dataStore.edit { it[KEY_12_HOUR] = is12Hour }
     }
 
     suspend fun setTimerSound(sound: String) {
         context.dataStore.edit { it[KEY_TIMER_SOUND] = sound }
+    }
+
+    suspend fun setRampVolumeEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_RAMP_VOLUME] = enabled }
     }
 
     suspend fun setSelectedCities(citiesJoined: String) {
@@ -66,5 +84,67 @@ class UserPreferences(private val context: Context) {
             it[KEY_TIMER_TOTAL_SEC] = totalSec
             it[KEY_TIMER_RUNNING] = isRunning
         }
+    }
+
+    suspend fun addCustomSound(uriString: String, title: String) {
+        context.dataStore.edit { prefs ->
+            val list = parseCustomSounds(prefs[KEY_CUSTOM_SOUNDS] ?: "[]").toMutableList()
+            // If already exists with this URI, update title; otherwise add
+            val idx = list.indexOfFirst { it.uriString == uriString }
+            if (idx >= 0) {
+                list[idx] = list[idx].copy(title = title)
+            } else {
+                list.add(0, CustomSound(uriString = uriString, title = title))
+            }
+            prefs[KEY_CUSTOM_SOUNDS] = serializeCustomSounds(list)
+        }
+    }
+
+    suspend fun renameCustomSound(uriString: String, newTitle: String) {
+        context.dataStore.edit { prefs ->
+            val list = parseCustomSounds(prefs[KEY_CUSTOM_SOUNDS] ?: "[]").map {
+                if (it.uriString == uriString) it.copy(title = newTitle) else it
+            }
+            prefs[KEY_CUSTOM_SOUNDS] = serializeCustomSounds(list)
+        }
+    }
+
+    suspend fun deleteCustomSound(uriString: String) {
+        context.dataStore.edit { prefs ->
+            val list = parseCustomSounds(prefs[KEY_CUSTOM_SOUNDS] ?: "[]").filter {
+                it.uriString != uriString
+            }
+            prefs[KEY_CUSTOM_SOUNDS] = serializeCustomSounds(list)
+        }
+    }
+
+    private fun parseCustomSounds(json: String): List<CustomSound> {
+        val result = mutableListOf<CustomSound>()
+        try {
+            val array = JSONArray(json)
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                result.add(
+                    CustomSound(
+                        uriString = obj.optString("uri", ""),
+                        title = obj.optString("title", "Моя мелодия"),
+                        addedAt = obj.optLong("addedAt", System.currentTimeMillis())
+                    )
+                )
+            }
+        } catch (_: Exception) {}
+        return result
+    }
+
+    private fun serializeCustomSounds(sounds: List<CustomSound>): String {
+        val array = JSONArray()
+        for (s in sounds) {
+            val obj = JSONObject()
+            obj.put("uri", s.uriString)
+            obj.put("title", s.title)
+            obj.put("addedAt", s.addedAt)
+            array.put(obj)
+        }
+        return array.toString()
     }
 }

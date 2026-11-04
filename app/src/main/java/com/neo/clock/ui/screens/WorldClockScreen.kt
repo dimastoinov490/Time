@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -112,7 +113,7 @@ fun WorldClockScreen(
     val minutesStr = String.format("%02d", localTime.minute)
     val amPmStr = if (state.is12Hour) (if (localTime.hour < 12) " AM" else " PM") else ""
 
-    val ruDateFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy г.", Locale("ru"))
+    val ruDateFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy г.", Locale.forLanguageTag("ru"))
     val dateStr = localTime.format(ruDateFormatter)
 
     val pagerState = rememberPagerState(pageCount = { state.cities.size })
@@ -303,7 +304,7 @@ fun WorldClockScreen(
                     if (state.is12Hour) "hh : mm a" else "HH : mm",
                     Locale.ENGLISH
                 )
-                val ruCityDateFormatter = DateTimeFormatter.ofPattern("EEE, d MMM", Locale("ru"))
+                val ruCityDateFormatter = DateTimeFormatter.ofPattern("EEE, d MMM", Locale.forLanguageTag("ru"))
 
                 Box(
                     modifier = Modifier
@@ -400,8 +401,14 @@ fun WorldClockScreen(
         SettingsModal(
             is12Hour = state.is12Hour,
             selectedSound = state.timerSound,
+            isRampVolume = state.isRampVolumeEnabled,
+            customSounds = state.customSounds,
             onToggle12Hour = { viewModel.toggle12HourFormat() },
+            onToggleRampVolume = { viewModel.setRampVolumeEnabled(it) },
             onSoundSelect = { viewModel.setTimerSound(it) },
+            onAddCustomSound = { uri, name -> viewModel.addCustomSound(uri, name) },
+            onRenameCustomSound = { uri, name -> viewModel.renameCustomSound(uri, name) },
+            onDeleteCustomSound = { uri -> viewModel.deleteCustomSound(uri) },
             onDismiss = { showSettingsSheet = false }
         )
     }
@@ -492,10 +499,18 @@ fun AddCityModal(
 fun SettingsModal(
     is12Hour: Boolean,
     selectedSound: String,
+    isRampVolume: Boolean,
+    customSounds: List<com.neo.clock.audio.CustomSound>,
     onToggle12Hour: () -> Unit,
+    onToggleRampVolume: (Boolean) -> Unit,
     onSoundSelect: (String) -> Unit,
+    onAddCustomSound: (String, String) -> Unit,
+    onRenameCustomSound: (String, String) -> Unit,
+    onDeleteCustomSound: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showSoundPicker by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(
@@ -542,38 +557,82 @@ fun SettingsModal(
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            Text(
-                text = "Мелодия таймера по умолчанию",
-                style = MaterialTheme.typography.titleMedium,
-                color = NeuMuted
-            )
+            // Volume ramp toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .neuRaised(cornerRadius = 16.dp)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "Нарастание громкости", style = MaterialTheme.typography.titleMedium, color = NeuText)
+                    Text(text = "Плавное нарастание звука за 10 секунд", color = NeuMuted, fontSize = 12.sp)
+                }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            SoundEngine.ALL_SOUNDS.forEach { sound ->
-                val isSelected = selectedSound == sound.id
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .then(if (isSelected) Modifier.neuSunk(cornerRadius = 14.dp) else Modifier.neuRaised(cornerRadius = 14.dp))
-                        .neuClickable(cornerRadius = 14.dp, onClick = { onSoundSelect(sound.id) })
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .height(38.dp)
+                        .neuClickable(cornerRadius = 12.dp, onClick = { onToggleRampVolume(!isRampVolume) })
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "${sound.name} (${sound.group})", color = if (isSelected) NeuBlue2 else NeuText, fontWeight = FontWeight.Medium)
-                        if (isSelected) {
-                            Text(text = "✓", color = NeuBlue2, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    Text(
+                        text = if (isRampVolume) "Вкл" else "Выкл",
+                        color = if (isRampVolume) NeuBlue2 else NeuMuted,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Default timer sound selector row
+            val currentSoundTitle = SoundEngine.resolveTitle(context, selectedSound)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .neuRaised(cornerRadius = 16.dp)
+                    .clickable { showSoundPicker = true }
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(text = "Мелодия таймера по умолчанию", color = NeuMuted, fontSize = 11.sp)
+                        Text(
+                            text = currentSoundTitle,
+                            color = NeuText,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Text(text = "Выбрать >", color = NeuBlue2, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
         }
+    }
+
+    if (showSoundPicker) {
+        com.neo.clock.ui.sound.SoundPickerSheet(
+            selectedSoundId = selectedSound,
+            customSounds = customSounds,
+            onSelectSound = {
+                onSoundSelect(it)
+                showSoundPicker = false
+            },
+            onAddCustomSound = onAddCustomSound,
+            onRenameCustomSound = onRenameCustomSound,
+            onDeleteCustomSound = onDeleteCustomSound,
+            onDismiss = { showSoundPicker = false }
+        )
     }
 }

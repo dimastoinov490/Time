@@ -35,7 +35,11 @@ data class MainUiState(
     val timerTotalSeconds: Long = 300L,
     val timerRemainingSeconds: Long = 300L,
     val isTimerRunning: Boolean = false,
-    val timerSound: String = "crystal",
+    val timerSound: String = "builtin:crystal",
+
+    // Custom Sounds & Audio Settings
+    val customSounds: List<com.neo.clock.audio.CustomSound> = emptyList(),
+    val isRampVolumeEnabled: Boolean = true,
 
     // Preview
     val previewingSoundId: String? = null
@@ -92,6 +96,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     if (parts.size == 2) WorldCityItem(parts[0], parts[1]) else null
                 }
                 _uiState.update { it.copy(cities = list) }
+            }
+        }
+        viewModelScope.launch {
+            prefs.customSounds.collect { customList ->
+                _uiState.update { it.copy(customSounds = customList) }
+            }
+        }
+        viewModelScope.launch {
+            prefs.isRampVolumeEnabled.collect { ramp ->
+                _uiState.update { it.copy(isRampVolumeEnabled = ramp) }
             }
         }
     }
@@ -183,6 +197,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun stopSoundPreview() {
         SoundEngine.stop()
         _uiState.update { it.copy(previewingSoundId = null) }
+    }
+
+    fun addCustomSound(uriString: String, title: String) {
+        viewModelScope.launch {
+            prefs.addCustomSound(uriString, title)
+        }
+    }
+
+    fun renameCustomSound(uriString: String, newTitle: String) {
+        viewModelScope.launch {
+            prefs.renameCustomSound(uriString, newTitle)
+        }
+    }
+
+    fun deleteCustomSound(uriString: String) {
+        viewModelScope.launch {
+            prefs.deleteCustomSound(uriString)
+        }
+    }
+
+    fun setRampVolumeEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            prefs.setRampVolumeEnabled(enabled)
+        }
     }
 
     // --- Timer ---

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,9 +17,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,12 +50,16 @@ import com.neo.clock.ui.theme.NeuBlue2
 import com.neo.clock.ui.theme.NeuText
 import com.neo.clock.ui.theme.Poppins
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimerScreen(
     state: MainUiState,
     viewModel: MainViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showSoundPicker by remember { mutableStateOf(false) }
+
     val totalSec = state.timerTotalSeconds
     val remSec = state.timerRemainingSeconds
     val progress = if (totalSec > 0) (remSec.toFloat() / totalSec.toFloat()).coerceIn(0f, 1f) else 0f
@@ -165,6 +177,48 @@ fun TimerScreen(
             }
         }
 
+        // Dedicated Timer Melody Row
+        val timerSoundTitle = com.neo.clock.audio.SoundEngine.resolveTitle(context, state.timerSound)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .neuRaised(cornerRadius = 16.dp)
+                .clickable { showSoundPicker = true }
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .testTag("timer_sound_row")
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = "Мелодия таймера",
+                        tint = NeuBlue2,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(text = "Мелодия таймера", color = com.neo.clock.ui.theme.NeuMuted, fontSize = 11.sp)
+                        Text(
+                            text = timerSoundTitle,
+                            color = NeuText,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                Text(
+                    text = "Выбрать >",
+                    color = NeuBlue2,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
         // Bottom Controls Row: Сброс and Старт/Пауза (.row)
         Row(
             modifier = Modifier
@@ -214,5 +268,20 @@ fun TimerScreen(
                 )
             }
         }
+    }
+
+    if (showSoundPicker) {
+        com.neo.clock.ui.sound.SoundPickerSheet(
+            selectedSoundId = state.timerSound,
+            customSounds = state.customSounds,
+            onSelectSound = { soundId ->
+                viewModel.setTimerSound(soundId)
+                showSoundPicker = false
+            },
+            onAddCustomSound = { uri, name -> viewModel.addCustomSound(uri, name) },
+            onRenameCustomSound = { uri, name -> viewModel.renameCustomSound(uri, name) },
+            onDeleteCustomSound = { uri -> viewModel.deleteCustomSound(uri) },
+            onDismiss = { showSoundPicker = false }
+        )
     }
 }
