@@ -1,10 +1,12 @@
 package com.neo.clock.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +24,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.input.pointer.pointerInput
+import com.neo.clock.ui.theme.NeuRed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
@@ -219,6 +223,8 @@ fun AlarmCard(
     onSoundClick: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    var showDelete by remember { mutableStateOf(false) }
+
     val displayHour = if (is12Hour) {
         val h = alarm.hour % 12
         String.format("%02d", if (h == 0) 12 else h)
@@ -234,7 +240,18 @@ fun AlarmCard(
         modifier = Modifier
             .fillMaxWidth()
             .neuRaised(cornerRadius = 20.dp)
+            .pointerInput(alarm.id) {
+                detectTapGestures(
+                    onLongPress = {
+                        showDelete = !showDelete
+                    },
+                    onTap = {
+                        if (showDelete) showDelete = false
+                    }
+                )
+            }
             .padding(16.dp, 18.dp)
+            .testTag("alarm_card_${alarm.id}")
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -292,23 +309,47 @@ fun AlarmCard(
                         color = if (alarm.enabled) NeuText else NeuMuted
                     )
                 )
+
+                if (showDelete) {
+                    Text(
+                        text = "Нажмите крестик справа для удаления",
+                        style = TextStyle(
+                            fontFamily = Poppins,
+                            fontSize = 11.sp,
+                            color = NeuRed
+                        ),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Delete button
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .padding(end = 6.dp)
-                        .testTag("delete_alarm_${alarm.id}")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Удалить",
-                        tint = NeuMuted,
-                        modifier = Modifier.size(18.dp)
-                    )
+                // Delete button appears ONLY on long press
+                AnimatedVisibility(visible = showDelete) {
+                    IconButton(
+                        onClick = {
+                            showDelete = false
+                            onDelete()
+                        },
+                        modifier = Modifier
+                            .size(38.dp)
+                            .padding(end = 6.dp)
+                            .testTag("delete_alarm_${alarm.id}")
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .neuRaised(cornerRadius = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Удалить",
+                                tint = NeuRed,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
 
                 // Neumorphic Spring Switch (.tg.sunk)
@@ -492,14 +533,15 @@ fun NewAlarmModal(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Dedicated Melody Row
+            // Dedicated Melody Row with Play/Stop Preview Button
             val currentSoundTitle = SoundEngine.resolveTitle(context, selectedSound)
+            var isSoundPlaying by remember { mutableStateOf(false) }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .neuRaised(cornerRadius = 14.dp)
-                    .clickable { showSoundPicker = true }
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
                     .testTag("alarm_sound_row")
             ) {
                 Row(
@@ -507,7 +549,15 @@ fun NewAlarmModal(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                SoundEngine.stop()
+                                isSoundPlaying = false
+                                showSoundPicker = true
+                            }
+                    ) {
                         Text(text = "Мелодия", color = NeuMuted, fontSize = 11.sp)
                         Text(
                             text = currentSoundTitle,
@@ -516,12 +566,46 @@ fun NewAlarmModal(
                             fontWeight = FontWeight.Medium
                         )
                     }
-                    Text(
-                        text = "Выбрать >",
-                        color = NeuBlue2,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Play / Stop preview button
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .neuClickable(cornerRadius = 10.dp, onClick = {
+                                    if (isSoundPlaying) {
+                                        SoundEngine.stop()
+                                        isSoundPlaying = false
+                                    } else {
+                                        SoundEngine.play(context, selectedSound, loop = false, rampVolume = false)
+                                        isSoundPlaying = true
+                                    }
+                                })
+                                .testTag("preview_alarm_sound_button"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isSoundPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                contentDescription = "Прослушать мелодию",
+                                tint = if (isSoundPlaying) NeuBlue2 else NeuText,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Text(
+                            text = "Выбрать >",
+                            color = NeuBlue2,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.clickable {
+                                SoundEngine.stop()
+                                isSoundPlaying = false
+                                showSoundPicker = true
+                            }
+                        )
+                    }
                 }
             }
 

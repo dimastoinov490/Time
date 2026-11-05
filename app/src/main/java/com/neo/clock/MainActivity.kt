@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -88,7 +89,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = androidx.activity.SystemBarStyle.dark(
+                android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = androidx.activity.SystemBarStyle.dark(
+                android.graphics.Color.TRANSPARENT
+            )
+        )
 
         setContent {
             NeoClockTheme {
@@ -133,7 +141,8 @@ fun MainAppScreen(viewModel: MainViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 28.dp, vertical = 12.dp)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 28.dp, vertical = 8.dp)
                     .testTag("neu_bottom_nav"),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
@@ -257,17 +266,17 @@ fun NeuNavMorphButton(
                 }
                 .drawBehind {
                     val crPx = 20.dp.toPx()
-                    val offsetPx = 5.dp.toPx() * (1f - progress)
-                    val blurPx = 10.dp.toPx()
+                    val offsetPx = 3.dp.toPx() * (1f - progress)
+                    val blurPx = 6.dp.toPx()
 
                     drawIntoCanvas { canvas ->
                         val nativeCanvas = canvas.nativeCanvas
 
-                        // 1. Blue outer glow when active (alarm.html: 0 0 18px -2px rgba(47,107,255,.5))
+                        // 1. Blue outer glow when active
                         if (progress > 0.05f) {
                             val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                color = Color(0xFF2F6BFF).copy(alpha = 0.45f * progress).toArgb()
-                                maskFilter = BlurMaskFilter(14.dp.toPx(), BlurMaskFilter.Blur.NORMAL)
+                                color = Color(0xFF2F6BFF).copy(alpha = 0.35f * progress).toArgb()
+                                maskFilter = BlurMaskFilter(8.dp.toPx(), BlurMaskFilter.Blur.NORMAL)
                             }
                             val glowRect = RectF(0f, 0f, size.width, size.height)
                             nativeCanvas.drawRoundRect(glowRect, crPx, crPx, glowPaint)
@@ -287,9 +296,9 @@ fun NeuNavMorphButton(
                             )
                             nativeCanvas.drawRoundRect(darkRect, crPx, crPx, darkPaint)
 
-                            // 3. Light shadow for raised state
+                            // 3. Subtle light shadow for raised state - no white haze
                             val lightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                                color = NeuLightShadow.copy(alpha = (1f - progress) * 0.7f).toArgb()
+                                color = NeuLightShadow.copy(alpha = (1f - progress) * 0.25f).toArgb()
                                 maskFilter = BlurMaskFilter(blurPx, BlurMaskFilter.Blur.NORMAL)
                             }
                             val lightRect = RectF(

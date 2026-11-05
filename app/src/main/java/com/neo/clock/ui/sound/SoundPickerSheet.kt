@@ -160,7 +160,7 @@ fun SoundPickerSheet(
                 .fillMaxHeight(0.88f)
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // Header: Title & Close Button
+            // Header: Title & Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -173,22 +173,40 @@ fun SoundPickerSheet(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .neuClickable(cornerRadius = 12.dp, onClick = {
-                            SoundEngine.stop()
-                            onDismiss()
-                        })
-                        .testTag("sound_picker_close"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Закрыть",
-                        tint = NeuMuted,
-                        modifier = Modifier.size(20.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .height(36.dp)
+                            .neuClickable(cornerRadius = 10.dp, onClick = {
+                                SoundEngine.stop()
+                                onDismiss()
+                            })
+                            .padding(horizontal = 12.dp)
+                            .testTag("sound_picker_done"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Готово", color = NeuBlue2, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .neuClickable(cornerRadius = 10.dp, onClick = {
+                                SoundEngine.stop()
+                                onDismiss()
+                            })
+                            .testTag("sound_picker_close"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Закрыть",
+                            tint = NeuMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
 
@@ -304,6 +322,7 @@ fun SoundPickerSheet(
                                     isPreviewing = isPreviewing,
                                     onSelect = {
                                         onSelectSound(sound.id)
+                                        handlePreview(sound.id)
                                     },
                                     onPreview = { handlePreview(sound.id) }
                                 )
@@ -352,7 +371,10 @@ fun SoundPickerSheet(
                                         subtitle = sound.group,
                                         isSelected = isSelected,
                                         isPreviewing = isPreviewing,
-                                        onSelect = { onSelectSound(sound.id) },
+                                        onSelect = {
+                                            onSelectSound(sound.id)
+                                            handlePreview(sound.id)
+                                        },
                                         onPreview = { handlePreview(sound.id) }
                                     )
                                 }
@@ -429,7 +451,10 @@ fun SoundPickerSheet(
                                         title = custom.title,
                                         isSelected = isSelected,
                                         isPreviewing = isPreviewing,
-                                        onSelect = { onSelectSound(soundId) },
+                                        onSelect = {
+                                            onSelectSound(soundId)
+                                            handlePreview(soundId)
+                                        },
                                         onPreview = { handlePreview(soundId) },
                                         onRename = {
                                             soundToRename = custom

@@ -44,8 +44,8 @@ fun Modifier.neuRaised(
     ),
     darkShadowColor: Color = NeuDarkShadow,
     lightShadowColor: Color = NeuLightShadow,
-    shadowOffset: Dp = 6.dp,
-    blurRadius: Dp = 12.dp
+    shadowOffset: Dp = 4.dp,
+    blurRadius: Dp = 8.dp
 ): Modifier = this.drawBehind {
     val crPx = cornerRadius.toPx()
     val shadowOffsetPx = shadowOffset.toPx()
@@ -56,7 +56,7 @@ fun Modifier.neuRaised(
 
         // 1. Dark bottom-right shadow
         val darkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = darkShadowColor.toArgb()
+            color = darkShadowColor.copy(alpha = 0.9f).toArgb()
             if (blurPx > 0f) {
                 maskFilter = BlurMaskFilter(blurPx, BlurMaskFilter.Blur.NORMAL)
             }
@@ -69,9 +69,9 @@ fun Modifier.neuRaised(
         )
         nativeCanvas.drawRoundRect(darkRect, crPx, crPx, darkPaint)
 
-        // 2. Light top-left shadow
+        // 2. Subtle light top-left shadow - soft alpha so it doesn't cause white glow
         val lightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = lightShadowColor.toArgb()
+            color = lightShadowColor.copy(alpha = 0.35f).toArgb()
             if (blurPx > 0f) {
                 maskFilter = BlurMaskFilter(blurPx, BlurMaskFilter.Blur.NORMAL)
             }
@@ -98,7 +98,7 @@ fun Modifier.neuSunk(
     surfaceColor: Color = NeuSurfaceSunk,
     darkShadowColor: Color = NeuDarkShadow,
     lightShadowColor: Color = NeuSunkLight,
-    shadowDepth: Dp = 6.dp
+    shadowDepth: Dp = 5.dp
 ): Modifier = this.drawBehind {
     val crPx = cornerRadius.toPx()
     val depthPx = shadowDepth.toPx()
@@ -113,7 +113,7 @@ fun Modifier.neuSunk(
     // Inner top-left dark shadow
     drawRoundRect(
         brush = Brush.linearGradient(
-            colors = listOf(darkShadowColor.copy(alpha = 0.95f), Color.Transparent),
+            colors = listOf(darkShadowColor.copy(alpha = 0.9f), Color.Transparent),
             start = Offset(0f, 0f),
             end = Offset(depthPx * 2, depthPx * 2)
         ),
@@ -124,7 +124,7 @@ fun Modifier.neuSunk(
     // Inner bottom-right light highlight
     drawRoundRect(
         brush = Brush.linearGradient(
-            colors = listOf(Color.Transparent, lightShadowColor.copy(alpha = 0.65f)),
+            colors = listOf(Color.Transparent, lightShadowColor.copy(alpha = 0.35f)),
             start = Offset(size.width - depthPx * 2, size.height - depthPx * 2),
             end = Offset(size.width, size.height)
         ),
