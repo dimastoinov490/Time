@@ -1,5 +1,6 @@
 package com.neo.clock.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -9,7 +10,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.input.pointer.pointerInput
+import com.neo.clock.ui.theme.NeuRed
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -89,6 +93,7 @@ fun WorldClockScreen(
 ) {
     var showAddCitySheet by remember { mutableStateOf(false) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var deletingCityId by remember { mutableStateOf<String?>(null) }
 
     // 18s rotating blue sweep glow
     val infiniteTransition = rememberInfiniteTransition(label = "dialSweep")
@@ -311,6 +316,16 @@ fun WorldClockScreen(
                         .fillMaxSize()
                         .padding(horizontal = 6.dp)
                         .neuRaised(cornerRadius = 20.dp)
+                        .pointerInput(city.timezoneId) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    deletingCityId = if (deletingCityId == city.timezoneId) null else city.timezoneId
+                                },
+                                onTap = {
+                                    if (deletingCityId != null) deletingCityId = null
+                                }
+                            )
+                        }
                         .padding(horizontal = 20.dp, vertical = 14.dp)
                 ) {
                     Row(
@@ -350,13 +365,30 @@ fun WorldClockScreen(
                                     color = NeuText
                                 )
                             )
-                            if (state.cities.size > 1) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                IconButton(
-                                    onClick = { viewModel.removeCity(city.timezoneId) },
-                                    modifier = Modifier.size(28.dp).testTag("remove_city_${city.timezoneId}")
-                                ) {
-                                    Icon(Icons.Default.Close, contentDescription = "Remove", tint = NeuMuted, modifier = Modifier.size(16.dp))
+                            AnimatedVisibility(visible = deletingCityId == city.timezoneId && state.cities.size > 1) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    IconButton(
+                                        onClick = {
+                                            deletingCityId = null
+                                            viewModel.removeCity(city.timezoneId)
+                                        },
+                                        modifier = Modifier.size(32.dp).testTag("remove_city_${city.timezoneId}")
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .neuRaised(cornerRadius = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Close,
+                                                contentDescription = "Удалить",
+                                                tint = NeuRed,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

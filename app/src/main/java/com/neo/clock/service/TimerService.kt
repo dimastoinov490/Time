@@ -101,7 +101,8 @@ class TimerService : Service() {
         }
 
         val completedNotification = NotificationCompat.Builder(this, CHANNEL_ID_TIMER)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification_timer)
+            .setLargeIcon(android.graphics.BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher))
             .setContentTitle("Таймер завершён")
             .setContentText("Установленное время истекло")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -141,8 +142,19 @@ class TimerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val largeIconBmp = try {
+            android.graphics.BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+        } catch (_: Exception) {
+            null
+        }
+
         return NotificationCompat.Builder(this, CHANNEL_ID_TIMER)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification_timer)
+            .apply {
+                if (largeIconBmp != null) {
+                    setLargeIcon(largeIconBmp)
+                }
+            }
             .setContentTitle(if (isRunning) "Таймер: $timeFormatted" else "Таймер на паузе ($timeFormatted)")
             .setContentText("Нажмите, чтобы открыть приложение")
             .setPriority(NotificationCompat.PRIORITY_LOW)

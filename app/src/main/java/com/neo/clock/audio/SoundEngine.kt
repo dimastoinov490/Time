@@ -111,7 +111,7 @@ object SoundEngine {
                 val bufferSizeBytes = buffer.size * 2
 
                 val attributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setUsage(if (loop) AudioAttributes.USAGE_ALARM else AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build()
 
@@ -135,32 +135,43 @@ object SoundEngine {
                     AudioManager.AUDIO_SESSION_ID_GENERATE
                 )
                 activeTrack = track
+                track.setVolume(1.0f)
                 track.play()
 
                 val startTime = SystemClock.elapsedRealtime()
 
                 while (isPlaying) {
-                    if (rampVolume) {
-                        val elapsedSec = (SystemClock.elapsedRealtime() - startTime) / 1000f
-                        val volume = (elapsedSec / 10f).coerceIn(0.12f, 1.0f)
-                        track.setVolume(volume)
-                    } else {
-                        track.setVolume(1.0f)
-                    }
-
                     var written = 0
                     while (written < buffer.size && isPlaying) {
-                        val chunk = minOf(1024, buffer.size - written)
+                        if (rampVolume) {
+                            val elapsedSec = (SystemClock.elapsedRealtime() - startTime) / 1000f
+                            val volume = (elapsedSec / 10f).coerceIn(0.18f, 1.0f)
+                            track.setVolume(volume)
+                        } else {
+                            track.setVolume(1.0f)
+                        }
+
+                        val chunk = minOf(4096, buffer.size - written)
                         val ret = track.write(buffer, written, chunk)
                         if (ret < 0) break
                         written += ret
                     }
 
-                    if (!loop) break
+                    if (!loop) {
+                        // Allow the written audio buffer to finish playing through the speaker
+                        val durationMs = (buffer.size.toDouble() / SAMPLE_RATE * 1000.0).toLong()
+                        val finishDeadline = SystemClock.elapsedRealtime() + durationMs + 150L
+                        while (isPlaying && SystemClock.elapsedRealtime() < finishDeadline) {
+                            SystemClock.sleep(30)
+                        }
+                        break
+                    }
                 }
 
-                track.stop()
-                track.release()
+                try {
+                    track.stop()
+                    track.release()
+                } catch (_: Exception) {}
             } catch (e: Exception) {
                 Log.e(TAG, "Audio synthesis playback failed", e)
             } finally {

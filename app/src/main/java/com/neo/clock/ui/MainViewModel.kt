@@ -160,7 +160,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // --- Alarms ---
     fun toggleAlarm(alarm: AlarmEntity) {
         viewModelScope.launch {
+            val turningOn = !alarm.enabled
             repository.toggleAlarm(alarm)
+            if (turningOn) {
+                showTimeUntilAlarmToast(alarm.hour, alarm.minute, alarm.daysBitmask)
+            }
         }
     }
 
@@ -180,7 +184,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch {
             repository.addAlarm(hour, minute, label, daysBitmask, sound, vibrate)
+            showTimeUntilAlarmToast(hour, minute, daysBitmask)
         }
+    }
+
+    private fun showTimeUntilAlarmToast(hour: Int, minute: Int, daysBitmask: Int) {
+        try {
+            val now = java.time.ZonedDateTime.now()
+            var target = now.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
+            if (!target.isAfter(now)) {
+                target = target.plusDays(1)
+            }
+            if (daysBitmask != 0) {
+                for (i in 0..7) {
+                    val dayBit = target.dayOfWeek.value - 1
+                    if ((daysBitmask and (1 shl dayBit)) != 0 && target.isAfter(now)) {
+                        break
+                    }
+                    target = target.plusDays(1)
+                }
+            }
+            val duration = java.time.Duration.between(now, target)
+            val totalMinutes = duration.toMinutes().coerceAtLeast(1)
+            val hours = totalMinutes / 60
+            val minutes = totalMinutes % 60
+
+            val msg = when {
+                hours > 0 && minutes > 0 -> "Будильник сработает через $hours ч $minutes мин"
+                hours > 0 -> "Будильник сработает через $hours ч"
+                else -> "Будильник сработает через $minutes мин"
+            }
+
+            android.widget.Toast.makeText(getApplication(), msg, android.widget.Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {}
     }
 
     fun updateAlarm(alarm: AlarmEntity) {

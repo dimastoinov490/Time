@@ -183,8 +183,19 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val largeIconBmp = try {
+            android.graphics.BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher)
+        } catch (_: Exception) {
+            null
+        }
+
         return NotificationCompat.Builder(this, CHANNEL_ID_ALARM)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification_alarm)
+            .apply {
+                if (largeIconBmp != null) {
+                    setLargeIcon(largeIconBmp)
+                }
+            }
             .setContentTitle("Будильник: $currentAlarmLabel")
             .setContentText("Нажмите, чтобы отключить или отложить")
             .setPriority(NotificationCompat.PRIORITY_MAX)

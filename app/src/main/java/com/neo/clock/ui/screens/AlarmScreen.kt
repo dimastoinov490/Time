@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.pointer.pointerInput
 import com.neo.clock.ui.theme.NeuRed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -161,21 +162,30 @@ fun AlarmScreen(
         // "+ Новый будильник" button (.pill.raise)
         Box(
             modifier = Modifier
-                .padding(bottom = 14.dp)
-                .neuClickable(cornerRadius = 18.dp, onClick = { showNewAlarmSheet = true })
-                .testTag("new_alarm_button")
-                .padding(horizontal = 30.dp, vertical = 14.dp),
+                .padding(bottom = 16.dp)
+                .neuClickable(cornerRadius = 22.dp, onClick = { showNewAlarmSheet = true })
+                .padding(horizontal = 32.dp, vertical = 15.dp)
+                .testTag("new_alarm_button"),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "+ Новый будильник",
-                style = TextStyle(
-                    fontFamily = Poppins,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = NeuText
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = NeuBlue2,
+                    modifier = Modifier.size(18.dp)
                 )
-            )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Новый будильник",
+                    style = TextStyle(
+                        fontFamily = Poppins,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = NeuText
+                    )
+                )
+            }
         }
     }
 
